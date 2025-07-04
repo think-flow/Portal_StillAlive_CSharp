@@ -26,8 +26,8 @@ internal class Program
 
         Console.CancelKeyPress += (_, e) =>
         {
-            e.Cancel = true;
-            Console.Clear();
+            ConsoleHelper.EndDraw();
+            Console.WriteLine("Got it! Exiting...");
             Environment.Exit(1);
         };
 
