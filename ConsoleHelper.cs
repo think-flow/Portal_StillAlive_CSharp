@@ -1,4 +1,6 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using System.Text.RegularExpressions;
 using PortalStillAlive.Data;
 
 // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
@@ -36,6 +38,14 @@ public static class ConsoleHelper
     static ConsoleHelper()
     {
         string term = Environment.GetEnvironmentVariable("TERM") ?? "vt100";
+        if (OperatingSystem.IsWindows())
+        {
+            if (CheckSupport())
+            {
+                term = "windows";
+            }
+        }
+
         _isVt = Regex.Match(term, @"vt(\d+)");
 
         // xterm, rxvt, konsole ...
@@ -87,6 +97,26 @@ public static class ConsoleHelper
         _asciiArtY = _creditsHeight + 3;
 
         _creditsPosX = _lyricWidth + 4;
+    }
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetStdHandle(int nStdHandle);
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll")]
+    private static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+
+    [SupportedOSPlatform("windows")]
+    private static bool CheckSupport()
+    {
+        nint handle = GetStdHandle(-11);
+        if (GetConsoleMode(handle, out uint mode))
+        {
+            return (mode & 0x0004) != 0;
+        }
+
+        return false;
     }
 
     public static void BeginDraw()
