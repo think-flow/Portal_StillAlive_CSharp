@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
 using PortalStillAlive.Data;
@@ -303,11 +304,11 @@ public static class ConsoleHelper
             int i = 0;
             int length = credits.Length;
             var lastCredits = new List<string> {""};
-            double startTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000d;
+            var stopwatch = Stopwatch.StartNew();
 
             foreach (char ch in credits)
             {
-                double currentTime = startTime + 174d / length * i;
+                double duration = 174.0 / length * i;
                 i += 1;
                 if (ch == '\n')
                 {
@@ -360,7 +361,7 @@ public static class ConsoleHelper
                     creditX += 1;
                 }
 
-                while (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000d < currentTime)
+                while (stopwatch.Elapsed.TotalSeconds < duration)
                 {
                     Thread.Sleep(10);
                 }

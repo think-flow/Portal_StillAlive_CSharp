@@ -37,7 +37,7 @@ internal class Program
         ConsoleHelper.Move(2, 2);
         Thread.Sleep(1000);
 
-        double startTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 10d;
+        var stopwatch = Stopwatch.StartNew();
         int currentLyric = 0;
         int x = 0;
         int y = 0;
@@ -46,9 +46,9 @@ internal class Program
 
         while (lyrics[currentLyric].Mode != 9)
         {
-            double currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 10d - startTime;
+            long pastTime = stopwatch.ElapsedMilliseconds / 10;
 
-            if (currentTime > lyrics[currentLyric].Time)
+            if (pastTime > lyrics[currentLyric].Time)
             {
                 int wordCount = 0;
                 double interval;
