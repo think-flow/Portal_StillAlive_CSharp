@@ -6,10 +6,23 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>PortalStillAlive</RootNamespace>
+        
+        <!-- native aot begin-->
+        <PublishAot>true</PublishAot>
+        <PublishTrimmed>true</PublishTrimmed>
+        <TrimMode>link</TrimMode>
+        <OptimizationPreference>Size</OptimizationPreference>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <StackTraceSupport>false</StackTraceSupport>
+        <StripSymbols>false</StripSymbols>  <!-- 不裁剪符号，后续我们手动裁剪 -->
+        <!-- native aot end-->
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="NetCoreAudio" Version="2.0.0"/>
+        <PackageReference Include="NetCoreAudio" Version="2.0.0" />
+        <!-- This nuget package allows using Zig as the linker/sysroot to allow crosscompiling 
+        to linux-x64/linux-arm64/linux-musl-x64/linux-musl-arm64 from a Windows machine.-->
+        <PackageReference Include="PublishAotCross" Version="1.0.0" />
     </ItemGroup>
 
     <ItemGroup>
