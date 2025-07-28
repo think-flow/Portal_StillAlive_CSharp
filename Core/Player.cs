@@ -35,12 +35,12 @@ public static class Player
     [SupportedOSPlatform("windows")]
     private static void MciSendString(string command)
     {
-        uint res = mciSendStringW(command, IntPtr.Zero, 1024 * 1024, IntPtr.Zero);
+        uint res = mciSendStringW(command, null!, 0, IntPtr.Zero);
         if (res != 0)
         {
             string errStr = $"Error executing MCI command '{command}'. Error code: {res}. Error Msg: ";
             var buffer = new StringBuilder(128);
-            _ = mciGetErrorStringW(res, buffer, 128);
+            _ = mciGetErrorStringW(res, buffer, (uint) buffer.Capacity);
             throw new Exception(errStr + buffer);
         }
     }
@@ -49,14 +49,14 @@ public static class Player
     [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
     private static extern uint mciSendStringW(
         string lpszCommand,
-        IntPtr lpszReturnString,
+        StringBuilder lpszReturnString,
         uint cchReturn,
         IntPtr hwndCallback
     );
 
     [SupportedOSPlatform("windows")]
     [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
-    private static extern uint mciGetErrorStringW(
+    private static extern bool mciGetErrorStringW(
         uint fdwError,
         StringBuilder lpszErrorText,
         uint cchErrorText
