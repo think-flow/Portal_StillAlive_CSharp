@@ -84,6 +84,7 @@ public static class Lyric
                         index++;
                     }
 
+                    // 一句歌词结束后，需要保持光标仍然在lyric区域显示
                     tx.Print((cursorX, cursorY), "\0");
                     Thread.Sleep(TimeSpan.FromMilliseconds(10));
                 }
