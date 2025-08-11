@@ -84,6 +84,7 @@ public static class Lyric
                         index++;
                     }
 
+                    tx.Print((cursorX, cursorY), "\0");
                     Thread.Sleep(TimeSpan.FromMilliseconds(10));
                 }
 
