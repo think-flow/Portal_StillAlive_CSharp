@@ -6,26 +6,29 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>PortalStillAlive</RootNamespace>
-        
-        <!-- native aot begin-->
-        <PublishAot>true</PublishAot>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition="'$(PublishAot)' == 'true'">
         <PublishTrimmed>true</PublishTrimmed>
         <TrimMode>link</TrimMode>
         <OptimizationPreference>Size</OptimizationPreference>
         <InvariantGlobalization>true</InvariantGlobalization>
         <StackTraceSupport>false</StackTraceSupport>
-        <StripSymbols>false</StripSymbols>  <!-- 不裁剪符号，后续我们手动裁剪 -->
-
+    </PropertyGroup>
+    
+    <PropertyGroup Condition="'$(PublishAot)' == 'true' AND '$(RuntimeIdentifier)' == 'win-x64'">
         <PublishLzmaCompressed>true</PublishLzmaCompressed>
         <UseSystemResourceKeys>true</UseSystemResourceKeys>
         <InvariantGlobalization>true</InvariantGlobalization>
-        <!-- native aot end-->
     </PropertyGroup>
+    
+    <ItemGroup Condition="'$(PublishAot)' == 'true' AND '$(RuntimeIdentifier)' == 'win-x64'">
+        <PackageReference Include="PublishAotCompressed" Version="1.0.5" />
+    </ItemGroup>
 
-    <ItemGroup>
+    <ItemGroup Condition="'$(PublishAot)' == 'true'">
         <!-- This nuget package allows using Zig as the linker/sysroot to allow crosscompiling 
         to linux-x64/linux-arm64/linux-musl-x64/linux-musl-arm64 from a Windows machine.-->
-        <PackageReference Include="PublishAotCompressed" Version="1.0.5" />
         <PackageReference Include="PublishAotCross" Version="1.0.0" />
     </ItemGroup>
 
