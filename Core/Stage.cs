@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
-using System.Threading.Channels;
+using PortalStillAlive.Data;
 
 namespace PortalStillAlive.Core;
 
@@ -32,11 +32,8 @@ public class Stage
 
         var isVt = Regex.Match(term, @"vt(\d+)");
 
-        // xterm, rxvt, konsole ...
-        // but fbcon in linux kernel does not support screen buffer
         bool enableScreenBuffer = !(isVt.Success || term == "linux");
 
-        // color support is after VT241
         bool enableColor = !isVt.Success ||
                            (isVt.Success && int.Parse(Regex.Match(isVt.Value, @"\d+").Value) >= 241);
 
@@ -51,7 +48,7 @@ public class Stage
             }
             catch (Exception)
             {
-                // ignore 
+                // ignore
             }
         }
 
@@ -135,9 +132,6 @@ public class Stage
         return false;
     }
 
-    /// <summary>
-    /// block run untill the show is finished
-    /// </summary>
     public void Run()
     {
         IsEndDraw.Token.ThrowIfCancellationRequested();
@@ -147,37 +141,96 @@ public class Stage
         MoveTo(2, 2);
         Thread.Sleep(TimeSpan.FromSeconds(2));
 
-        var channel = Channel.CreateUnbounded<OutputMsg>();
+        LyricTyping? typingState = null;
+        ArtState? artState = null;
+        CreditState? creditState = null;
+        int lyricIndex = 0;
+        int cursorX = 2;
+        int cursorY = 2;
 
-        // 启动lyric 线程
-        var lyricTask = Lyric.DrawAsync(channel.Writer, this, IsEndDraw.Token);
+        var stopwatch = Stopwatch.StartNew();
+        var lyrics = LyricData.Lyrics;
 
-        // 主线程负责获取消息并打印
-        foreach (var msg in channel.Reader.ReadAllAsync().ToBlockingEnumerable())
+        while (!IsEndDraw.IsCancellationRequested)
         {
-            if (IsEndDraw.IsCancellationRequested) break;
-
-            (ushort x, ushort y) = msg.Position;
-            if (x > 0 && y > 0)
+            if (typingState == null && artState == null)
             {
-                MoveTo(x, y);
+                if (lyricIndex < lyrics.Count)
+                {
+                    var current = lyrics[lyricIndex];
+                    long pastTime = stopwatch.ElapsedMilliseconds / 10;
+
+                    if (pastTime >= current.Time)
+                    {
+                        string text = current.Words.ToString()!;
+                        int wordCount = text.Length > 0 ? text.Length : 1;
+                        double interval;
+
+                        if (current.Interval < 0)
+                        {
+                            var nextLyric = lyrics[lyricIndex + 1];
+                            interval = (nextLyric.Time - current.Time) / 100.0 / wordCount;
+                        }
+                        else
+                        {
+                            interval = current.Interval / wordCount;
+                        }
+
+                        switch (current.Mode)
+                        {
+                            case 0:
+                                typingState = new LyricTyping(text, interval, true, cursorX, cursorY);
+                                break;
+                            case 1:
+                                typingState = new LyricTyping(text, interval, false, cursorX, cursorY);
+                                break;
+                            case 2:
+                                artState = new ArtState((int)current.Words, AsciiArtHeight);
+                                break;
+                            case 3:
+                                ClearLyrics();
+                                typingState = null;
+                                cursorX = 2;
+                                cursorY = 2;
+                                break;
+                            case 4:
+                                if (EnableSound)
+                                    Player.Play(SoundFilePath);
+                                break;
+                            case 5:
+                                creditState = new CreditState(
+                                    CreditsData.Credits,
+                                    CreditsWidth, CreditsHeight, CreditsPosX);
+                                break;
+                            case 9:
+                                goto end;
+                        }
+                        lyricIndex++;
+                    }
+                }
             }
 
-            Console.Write("{0}", msg.Content);
+            typingState?.Tick();
+            if (typingState?.IsDone == true)
+            {
+                cursorX = typingState.CursorX;
+                cursorY = typingState.CursorY;
+                typingState = null;
+            }
+
+            artState?.Tick(AsciiArtX, AsciiArtY);
+            if (artState?.IsDone == true) artState = null;
+
+            while (creditState?.IsReady() == true)
+            {
+                creditState.Tick();
+            }
+
+            Thread.Sleep(TimeSpan.FromMilliseconds(10));
         }
 
-        // 等待lyric 线程执行完毕， 如果有异常，则继续抛出
-        try
-        {
-            lyricTask.Wait(IsEndDraw.Token);
-        }
-        catch (AggregateException e)
-        {
-            if (e.InnerException is not null)
-            {
-                throw e.InnerException;
-            }
-        }
+    end:
+        return;
     }
 
     public void Stop()
@@ -238,10 +291,7 @@ public class Stage
         Print(string.Format(" {0} ", new string('-', LyricWidth)), false);
     }
 
-    /// <summary>
-    /// x 为列 y 为行  左上角坐标原点为1,1
-    /// </summary>
-    private static void MoveTo(int x, int y)
+    public static void MoveTo(int x, int y)
     {
         Debug.Assert(x >= 0 && y >= 0);
         Console.Write("\x1b[{0};{1}H", y, x);
@@ -256,6 +306,15 @@ public class Stage
         else
         {
             Console.Write(str);
+        }
+    }
+
+    private void ClearLyrics()
+    {
+        for (int y = 2; y < 2 + LyricHeight; y++)
+        {
+            MoveTo(2, y);
+            Console.Write(new string(' ', LyricWidth));
         }
     }
 }
